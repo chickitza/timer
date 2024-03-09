@@ -7,6 +7,7 @@ from win11toast import notify, update_progress, toast
 from datetime import datetime
 import os
 import records
+import glob
 
 activities = ["冥想", "阅读", "探索", "工作", "娱乐"]
 
@@ -111,17 +112,29 @@ class DailyTasksManager:
     def get_activity_name(self, activity):
         return self.activities.get(activity, {}).get("name", "未知活动")
 
-    def save_plan(self):
+    def save_plan(self, create_file=False):
         # 读取并保留第15行及之后的内容
         after_text = ""
+        
         try:
             with open(fr'F:\OneDriveWH\OneDrive - whu.edu.cn\TIME\{self.current_date}.txt', 'r') as file:
                 # 逐行读取文件内容
                 for i, line in enumerate(file):
                     if i > 14:
                         after_text += line
+        
         except FileNotFoundError:
-            after_text = ""
+            if create_file:
+                # 获取最近日期的文件目录
+                files = glob.glob(fr'F:\OneDriveWH\OneDrive - whu.edu.cn\TIME\*.txt')
+                path_closest = max(files, key=os.path.getctime)
+                print(path_closest)
+                with open(path_closest, 'r') as file:
+                    # 逐行读取文件内容
+                    for i, line in enumerate(file):
+                        if i > 14:
+                            after_text += line
+        
         # 打开文件以写入模式
         with open(fr'F:\OneDriveWH\OneDrive - whu.edu.cn\TIME\{self.current_date}.txt', 'w') as file:
             file.write(str(self.current_date) + '\n')
@@ -168,7 +181,7 @@ class DailyTasksManager:
                                    self.activities.items()}
                 self.remaining_times = {activity: activity_info["duration"] for activity, activity_info in
                                         self.activities.items()}
-            self.save_plan()
+            self.save_plan(create_file=True)
 
     def print_plan(self):
         for activity, remaining_time in self.remaining_times.items():
@@ -179,8 +192,6 @@ class DailyTasksManager:
                 f"{activity_name}：" + color3 + formatting_time(hours1, minutes1, seconds1) + Colors.END +
                 "  / " + formatting_time(hours2, minutes2, seconds2))
 
-    def statistic(self):
-        pass
 
 def timer_thread(manager, custom_time, selected_activity):
     total_time = custom_time
